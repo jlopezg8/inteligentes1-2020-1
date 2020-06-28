@@ -19,23 +19,24 @@ def _iter_matriz(matriz, con_indice=True):
             yield (i, j, val) if con_indice else val
 
 
-def graficar_estado(estado, ax=plt):
+def _graficar_estado(estado, ax):
     if ax is not plt:
         ax.clear()
     ax.matshow(estado, cmap='Blues')
     for i, j, val in _iter_matriz(estado):
         if val != HUECO:
             ax.text(x=j, y=i, s=val, size='xx-large', ha='center', va='center')
-    if ax is plt:
-        plt.show()
-    else:
-        return ax,
+
+
+def graficar_estado(estado):
+    _graficar_estado(estado, plt)
+    plt.show()
 
 
 def graficar_ruta(ruta, intervalo_ms=1000):
     fig, ax = plt.subplots()
-    anim = FuncAnimation(fig, graficar_estado, ruta, fargs=(ax,),
-                         interval=1000, repeat=False, blit=True)
+    anim = FuncAnimation(fig, _graficar_estado, ruta, fargs=(ax,),
+                         interval=intervalo_ms, repeat=False)
     plt.show()
 
 
@@ -51,7 +52,7 @@ def _buscar_elemento(matriz, elemento):
             return i, j
 
 
-MOVS = (
+_MOVS = (
     # di  dj
     (-1,  0),
     ( 0, -1),
@@ -60,35 +61,48 @@ MOVS = (
 )
 
 
+def _como_mutable(matriz):
+    """Retorna una copia mutable de `matriz`."""
+    return [list(fila) for fila in matriz]
+
+
+def _como_hasheable(matriz):
+    """Retorna una copia hasheable (y por tanto inmutable) de `matriz`."""
+    return tuple(tuple(fila) for fila in matriz)
+
+
 def gen_estados_alcanzables(estado):
     """Función generadora de los estados alcanzables a partir de `estado`."""
     i, j = _buscar_elemento(estado, HUECO)
-    indices = (i, j) + np.asarray(MOVS)
     #M, N = estado.shape  # asumiendo que `estado` es un `np.ndarray`
-    M = len(estado)
-    indices = indices[  np.all(0 <= indices, axis=-1)
-                      & np.all(indices < M , axis=-1)]
-    for i2, j2 in indices:
-        # copia mutable de `estado`:
-        estado2 = [list(fila) for fila in estado]
+    """
+    pos_huecos = (i, j) + np.asarray(_MOVS)
+    # Asumiendo que `estado` es una matriz cuadrada:
+    pos_huecos = pos_huecos[  np.all(0 <= pos_huecos, axis=-1)
+                            & np.all(pos_huecos < len(estado), axis=-1)]
+    """
+    pos_huecos = [(i2, j2) for di, dj in _MOVS
+                  if 0 <= (i2 := i + di) < len(estado)
+                     and 0 <= (j2 := j + dj) < len(estado[i2])]
+    for i2, j2 in pos_huecos:
+        estado2 = _como_mutable(estado)
         estado2[i][j], estado2[i2][j2] = estado2[i2][j2], estado2[i][j]
-        # copia hasheable (y por tanto inmutable) de `estado2`:
-        yield tuple(tuple(fila) for fila in estado2)
+        yield _como_hasheable(estado2)
 
 
-OBJETIVO = (
+_OBJETIVO = (
     (1, 2, 3),
     (4, 5, 6),
     (7, 8, X),
 )
 
 
-def es_objetivo(estado):
+def es_estado_objetivo(estado):
     """
     Determina si `estado` es el estado objetivo, es decir, si corresponde a un
     problema resuelto.
     """
-    return np.array_equal(estado, OBJETIVO)
+    return np.array_equal(estado, _OBJETIVO)
 
 
 def dist_manhattan(estado):
@@ -104,7 +118,7 @@ def dist_manhattan(estado):
     """
     dist = 0
     for i, j, val in _iter_matriz(estado):
-        i2, j2 = _buscar_elemento(OBJETIVO, val)
+        i2, j2 = _buscar_elemento(_OBJETIVO, val)
         dist += abs(i - i2) + abs(j - j2)
     return dist
 
@@ -119,4 +133,4 @@ def dist_hamming(estado):
     matriz no es igual al elemento correspondiente en la otra matriz, cuenta
     como una diferencia.
     """
-    return np.not_equal(estado, OBJETIVO).sum()
+    return np.not_equal(estado, _OBJETIVO).sum()
