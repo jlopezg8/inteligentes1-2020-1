@@ -82,8 +82,8 @@ def gen_estados_alcanzables(estado):
                             & np.all(pos_huecos < len(estado), axis=-1)]
     """
     pos_huecos = [(i2, j2) for di, dj in _MOVS
-                  if 0 <= (i2 := i + di) < len(estado)
-                     and 0 <= (j2 := j + dj) < len(estado[i2])]
+                  if (0 <= (i2 := i + di) < len(estado)
+                      and 0 <= (j2 := j + dj) < len(estado[i2]))]
     for i2, j2 in pos_huecos:
         estado2 = _como_mutable(estado)
         estado2[i][j], estado2[i2][j2] = estado2[i2][j2], estado2[i][j]

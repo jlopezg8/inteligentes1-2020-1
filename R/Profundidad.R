@@ -54,12 +54,8 @@ while (cond == 2) {
     profundidad = profundidad + 1;
 }
 
-if (cond == 2) {
-    print('Solución no encontrada')
-} else {
-    ruta=c(visitados,salida)
-    for(i in 1:length(ruta)){
-        graph.puzzle(ruta[[i]]);
-        Sys.sleep(1)
-    }
+ruta=c(visitados,salida)
+for(i in 1:length(ruta)){
+    graph.puzzle(ruta[[i]]);
+    Sys.sleep(1)
 }

@@ -3,14 +3,24 @@
 from itertools import count
 
 
-def contador_pasos_simple():
+def _corrutina(f):
+    def corrutina_preparada(*args, **kwargs):
+        corrutina = f(*args, **kwargs)
+        next(corrutina)  # preparar la corrutina (to prime it)
+        return corrutina
+    return corrutina_preparada
+
+
+@_corrutina
+def ContadorPasosSimple():
     """Imprime el número de pasos en líneas separadas."""
     for paso in count(start=1):
+        while rec := (yield paso):
+            print(rec)
         print(paso)
-        yield paso
 
-
-def contador_pasos_elaborado():
+@_corrutina
+def ContadorPasosElaborado():
     """Imprime el número de pasos en una barra de progreso.
     
     Requiere `tqdm`.
@@ -18,17 +28,19 @@ def contador_pasos_elaborado():
     from tqdm import tqdm
     # `tqdm` no funciona correctamente con `itertools`:
     #return tqdm(count(start=1))
-    t = tqdm()
+    t = tqdm(desc='Total')
     for paso in count(start=1):
+        while rec := (yield paso):
+            print(f'\n{rec}')
+            t.refresh()
         t.update()
-        yield paso
 
 
-def contador_pasos():
+def ContadorPasos():
     """Crea un iterador que imprime y retorna el número de pasos que lleva un
     algoritmo en cada iteración.
     """
     try:
-        return contador_pasos_elaborado()
+        return ContadorPasosElaborado()
     except ImportError:
-        return contador_pasos_simple()
+        return ContadorPasosSimple()

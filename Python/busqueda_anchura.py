@@ -2,7 +2,7 @@
 
 from collections import deque
 
-from utils.barras_progreso import contador_pasos
+from utils.barras_progreso import ContadorPasos
 
 
 def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
@@ -17,9 +17,11 @@ def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
     """
     frontera = deque([estado0])  # estados por visitar
     visitados = []
-    padres = [None]  # ``padres[i]`` es el padre de ``visitados[i]``
+    padres = [None]  # `padres[i]` es el padre de visitados[i]`
 
-    for pasos in contador_pasos():
+    # FIXME: no encuentra la solución si el estado inicial es el estado
+    # objetivo
+    for pasos in ContadorPasos():
         estado = frontera.popleft()
         visitados.append(estado)
         hijos = [hijo for hijo in gen_estados_alcanzables(estado)
@@ -29,7 +31,7 @@ def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
             break
         frontera.extend(hijos)
     else:
-        return None  # No resuelto
+        return None  # no resuelto
     
     # Hallar la ruta partiendo del estado objetivo hasta llegar al estado inicial:
     # El último estado visitado corresponde al estado padre del estado objetivo:
