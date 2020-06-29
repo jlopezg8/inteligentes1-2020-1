@@ -35,7 +35,6 @@ def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
                 return reconstruir_ruta(nodo_hijo)
             frontera.append(nodo_hijo)
             considerados.add(hijo)
-        considerados.update(hijos)
     return None  # no resuelto
 
 
