@@ -1,8 +1,12 @@
-"""Resolver un 8-puzzle usando búsqueda por anchura."""
+"""Resolver un 8-puzzle usando búsqueda por anchura con cortocircuito, es
+decir, verifica si alguno de los hijos de un estado es el estado objetivo antes
+de expandirlos.
+"""
 
-from collections import deque
+from collections import deque, namedtuple
 
-from utils.barras_progreso import ContadorPasos
+from utils.indicadores_progreso import ContadorPasos
+from utils.nodos import Nodo, reconstruir_ruta
 
 
 def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
@@ -15,32 +19,24 @@ def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
     :param `es_estado_objetivo`: función que recibe un estado e indica si es el
         estado objetivo
     """
-    frontera = deque([estado0])  # estados por visitar
-    visitados = []
-    padres = [None]  # `padres[i]` es el padre de visitados[i]`
-
-    # FIXME: no encuentra la solución si el estado inicial es el estado
-    # objetivo
-    for pasos in ContadorPasos():
-        estado = frontera.popleft()
-        visitados.append(estado)
-        hijos = [hijo for hijo in gen_estados_alcanzables(estado)
-                 if hijo not in visitados and hijo not in frontera]
-        padres.extend([estado] * len(hijos))
-        if any(es_estado_objetivo(objetivo := hijo) for hijo in hijos):
-            break
-        frontera.extend(hijos)
-    else:
-        return None  # no resuelto
-    
-    # Hallar la ruta partiendo del estado objetivo hasta llegar al estado inicial:
-    # El último estado visitado corresponde al estado padre del estado objetivo:
-    estado = visitados[-1]
-    ruta = deque((estado, objetivo))
-    while estado != estado0:
-        estado = padres[visitados.index(estado)]
-        ruta.appendleft(estado)
-    return ruta
+    contador_pasos = ContadorPasos()
+    nodo = Nodo(estado0, padre=None)
+    if es_estado_objetivo(estado0):
+        return reconstruir_ruta(nodo)
+    frontera = deque([nodo])  # estados por visitar
+    considerados = {estado0}  # estados en la frontera o ya visitados
+    while frontera:
+        next(contador_pasos)
+        nodo = frontera.popleft()
+        hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
+        for hijo in hijos:
+            nodo_hijo = Nodo(estado=hijo, padre=nodo)
+            if es_estado_objetivo(hijo):
+                return reconstruir_ruta(nodo_hijo)
+            frontera.append(nodo_hijo)
+            considerados.add(hijo)
+        considerados.update(hijos)
+    return None  # no resuelto
 
 
 if __name__ == "__main__":

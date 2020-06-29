@@ -3,21 +3,11 @@
 from bisect import insort
 from collections import deque, namedtuple
 
-from utils.barras_progreso import ContadorPasos
+from utils.indicadores_progreso import ContadorPasos
+from utils.nodos import NodoConCostoCombinado as Nodo, reconstruir_ruta
 
 
-_Nodo = namedtuple(
-    'Nodo', ['costo_estimado', 'costo_actual', 'dist', 'estado', 'padre'])
-
-
-def _reconstruir_ruta(nodo):
-    ruta = deque([nodo.estado])
-    while (nodo := nodo.padre) is not None:
-        ruta.appendleft(nodo.estado)
-    return ruta
-
-
-def buscar_a_estrella(estado0, gen_estados_alcanzables, heuristica):
+def buscar_con_a_estrella(estado0, gen_estados_alcanzables, heuristica):
     """Retorna la ruta para resolver el problema, o `None` si no se encontró
     una solución.
 
@@ -29,22 +19,22 @@ def buscar_a_estrella(estado0, gen_estados_alcanzables, heuristica):
     """
     contador_pasos = ContadorPasos()
     dist = heuristica(estado0)
-    frontera = deque([_Nodo(estado=estado0, padre=None, costo_actual=0,
-                            dist=dist, costo_estimado=0+dist)])
+    frontera = deque([Nodo(estado=estado0, padre=None, costo_actual=0,
+                           dist=dist, costo_combinado=0+dist)])
     considerados = {estado0}  # estados en la frontera o ya visitados
     while frontera:
         next(contador_pasos)
         nodo = frontera.popleft()
         if nodo.dist == 0:
-            return _reconstruir_ruta(nodo)
+            return reconstruir_ruta(nodo)
         hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
         for hijo in hijos:
-            considerados.add(hijo)
             costo_actual = nodo.costo_actual + 1
             dist = heuristica(hijo)
             insort(frontera,
-                   _Nodo(estado=hijo, padre=nodo, costo_actual=costo_actual,
-                         dist=dist, costo_estimado=costo_actual+dist))
+                   Nodo(estado=hijo, padre=nodo, costo_actual=costo_actual,
+                        dist=dist, costo_combinado=costo_actual+dist))
+            considerados.add(hijo)
     return None  # no resuelto
 
 
@@ -58,7 +48,7 @@ if __name__ == "__main__":
         (6, 4, 8),
     )
     ep.graficar_estado(estado0)
-    ruta = buscar_a_estrella(estado0, ep.gen_estados_alcanzables,
-                             heuristica=ep.dist_hamming)
+    ruta = buscar_con_a_estrella(estado0, ep.gen_estados_alcanzables,
+                                 heuristica=ep.dist_hamming)
     print(f'Solución de {len(ruta)} pasos')
     ep.graficar_ruta(ruta)
