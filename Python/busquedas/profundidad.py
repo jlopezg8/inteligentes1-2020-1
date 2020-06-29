@@ -1,4 +1,4 @@
-"""Resolver un 8-puzzle usando búsqueda por profundidad iterativa."""
+"""Resolver un 8-puzzle usando búsqueda en profundidad iterativa."""
 
 import sys
 from collections import deque
@@ -6,7 +6,7 @@ from collections import deque
 from utils.indicadores_progreso import ContadorPasos
 
 
-def buscar_por_profundidad_limitada(
+def buscar_en_profundidad_limitada(
         estado0, gen_estados_alcanzables, es_estado_objetivo, max_profundidad,
         contador_pasos=None):
     """Retorna la ruta para resolver el problema, o `None` si no se encontró
@@ -50,12 +50,12 @@ def buscar_por_profundidad_limitada(
                     return None  # no resuelto
 
 
-def buscar_por_profundidad_iterativa(
+def buscar_en_profundidad_iterativa(
         estado0, gen_estados_alcanzables, es_estado_objetivo):
     contador_pasos = ContadorPasos()
     for max_profundidad in range(1, sys.getrecursionlimit()):
         contador_pasos.send(f'{max_profundidad=}:')
-        if (ruta := buscar_por_profundidad_limitada(
+        if (ruta := buscar_en_profundidad_limitada(
                 estado0, gen_estados_alcanzables, es_estado_objetivo,
                 max_profundidad, contador_pasos)):
             return ruta
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         (6, 4, 8),
     )
     ep.graficar_estado(estado0)
-    ruta = buscar_por_profundidad_iterativa(
+    ruta = buscar_en_profundidad_iterativa(
         estado0, ep.gen_estados_alcanzables, ep.es_estado_objetivo)
     print(f'Solución de {len(ruta)} pasos')
     ep.graficar_ruta(ruta)

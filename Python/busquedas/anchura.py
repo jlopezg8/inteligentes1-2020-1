@@ -1,15 +1,15 @@
-"""Resolver un 8-puzzle usando búsqueda por anchura con cortocircuito, es
-decir, verifica si alguno de los hijos de un estado es el estado objetivo antes
-de expandirlos.
+"""Resolver un 8-puzzle usando búsqueda en anchura con cortocircuito, es decir,
+verifica si alguno de los hijos de un estado es el estado objetivo antes de
+expandirlos.
 """
 
-from collections import deque, namedtuple
+from collections import deque
 
 from utils.indicadores_progreso import ContadorPasos
 from utils.nodos import Nodo, reconstruir_ruta
 
 
-def buscar_por_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
+def buscar_en_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
     """Retorna la ruta para resolver el problema, o `None` si no se encontró
     una solución.
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         (6, 4, 8),
     )
     ep.graficar_estado(estado0)
-    ruta = buscar_por_anchura(estado0, ep.gen_estados_alcanzables,
-                              ep.es_estado_objetivo)
+    ruta = buscar_en_anchura(estado0, ep.gen_estados_alcanzables,
+                             ep.es_estado_objetivo)
     print(f'Solución de {len(ruta)} pasos')
     ep.graficar_ruta(ruta)

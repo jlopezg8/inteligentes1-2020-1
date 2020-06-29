@@ -1,7 +1,7 @@
 """Resolver un 8-puzzle usando búsqueda voraz."""
 
 from bisect import insort
-from collections import deque, namedtuple
+from collections import deque
 
 from utils.indicadores_progreso import ContadorPasos
 from utils.nodos import NodoConHeuristica as Nodo, reconstruir_ruta
