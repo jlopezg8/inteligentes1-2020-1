@@ -74,4 +74,5 @@ if __name__ == "__main__":
     ep.graficar_estado(estado0)
     ruta = buscar_por_profundidad_iterativa(
         estado0, ep.gen_estados_alcanzables, ep.es_estado_objetivo)
+    print(f'Solución de {len(ruta)} pasos')
     ep.graficar_ruta(ruta)

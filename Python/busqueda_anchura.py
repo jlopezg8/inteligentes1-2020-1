@@ -1,4 +1,4 @@
-"""Resolver un 8-puzzle usando búsqueda por anchura"""
+"""Resolver un 8-puzzle usando búsqueda por anchura."""
 
 from collections import deque
 
@@ -55,4 +55,5 @@ if __name__ == "__main__":
     ep.graficar_estado(estado0)
     ruta = buscar_por_anchura(estado0, ep.gen_estados_alcanzables,
                               ep.es_estado_objetivo)
+    print(f'Solución de {len(ruta)} pasos')
     ep.graficar_ruta(ruta)
