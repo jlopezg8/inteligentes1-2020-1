@@ -44,11 +44,18 @@ def vaciar_jarra_en(jarras, i, j):
 
 
 def gen_sucesores(jarras):
+    """
+    indices = range(len(jarras))
+    yield from (llenar_jarra(jarras, i) for i in indices)
+    yield from (vaciar_jarra(jarras, i) for i in indices)
+    yield from (vaciar_jarra_en(jarras, i, j)
+                for i in indices for j in indices if i != j)
+    """
     for i in range(len(jarras)):
         yield llenar_jarra(jarras, i)
         yield vaciar_jarra(jarras, i)
-        yield from (vaciar_jarra_en(jarras, i, j) for j in range(len(jarras))
-                    if i != j)
+        yield from (vaciar_jarra_en(jarras, i, j)
+                    for j in range(len(jarras)) if i != j)
 
 
 def crear_test_objetivo(objetivo):

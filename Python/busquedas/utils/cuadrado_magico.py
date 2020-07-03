@@ -5,32 +5,46 @@ cuadrado mágico.
 import numpy as np
 
 
+ESTADO0 = (
+    (0, 0, 0),
+    (0, 0, 0),
+    (0, 0, 0)
+)
+
+
 def gen_sucesores(estado):
     estado = np.asarray(estado)
-    num = 1 + max((estado[i, j] for i, j in np.argwhere(estado != 0)),
-                  default=0)
-    for i, j in np.argwhere(estado == 0):
+    m, n = estado.shape
+    nums = [num for num in range(1, m * n + 1) if num not in estado.ravel()]
+    if not nums:
+        return []
+    i, j = np.argwhere(estado == 0)[0]
+    for num in nums:
         estado[i, j] = num
         yield tuple(tuple(fila) for fila in estado)
-        estado[i, j] = 0
+
+
+def _hallar_sumas(cuadrado):
+    suma_diag1 = cuadrado[0, 0] + cuadrado[1, 1] + cuadrado[2, 2]
+    suma_diag2 = cuadrado[0, 2] + cuadrado[1, 1] + cuadrado[2, 0]
+    sumas_cols = cuadrado.sum(axis=0)
+    sumas_filas = cuadrado.sum(axis=1)
+    return np.concatenate(((suma_diag1, suma_diag2), sumas_cols, sumas_filas))
 
 
 def test_objetivo(estado):
     estado = np.asarray(estado)
-    suma_diag1 = estado[0, 0] + estado[1, 1] + estado[2, 2]
-    suma_diag2 = estado[0, 2] + estado[1, 1] + estado[2, 0]
-    sumas_cols = estado.sum(axis=0)
-    sumas_filas = estado.sum(axis=1)
-    return (suma_diag1 == suma_diag2 == sumas_cols[0] == sumas_filas[0]
-            and all(suma_col == suma_diag1 for suma_col in sumas_cols)
-            and all(suma_fila == suma_diag1 for suma_fila in sumas_filas))
+    if np.count_nonzero(estado == 0) > 0:
+        return False
+    sumas = _hallar_sumas(estado)
+    return all(suma == sumas[0] for suma in sumas)
 
 
-def heuristica(estado, c1=145, c2=145, c3=1):
+def heuristica(estado, c=256):
     estado = np.asarray(estado)
-    suma_diag1 = estado[0, 0] + estado[1, 1] + estado[2, 2]
-    suma_diag2 = estado[0, 2] + estado[1, 1] + estado[2, 0]
-    sumas = np.concatenate(
-        ([suma_diag1, suma_diag2], estado.sum(axis=0), estado.sum(axis=1)))
-    return (c1 * (estado[0, 0] != 4) + c2 * np.count_nonzero(estado == 0)
-            + c3 * np.var(sumas))
+    m, n = estado.shape
+    objetivo = n * (n ** 2 + 1) / 2  # asumiendo que m = n
+    sumas = _hallar_sumas(estado)
+    if any(suma > objetivo for suma in sumas):
+        return float('inf')
+    return np.sum(15 - sumas) +  c * (estado[0, 0] != 8)

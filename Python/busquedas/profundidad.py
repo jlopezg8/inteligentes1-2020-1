@@ -32,7 +32,7 @@ def buscar_en_profundidad_limitada(
         ruta.append(estado)
         pendientes[-1] -= 1
 
-        if (len(ruta) < max_profundidad and (hijos := [
+        if ((profundidad := len(ruta) - 1) < max_profundidad and (hijos := [
                 hijo for hijo in gen_estados_alcanzables(estado)
                 if hijo not in ruta and hijo not in frontera] )):
             if any(es_estado_objetivo(objetivo := hijo) for hijo in hijos):

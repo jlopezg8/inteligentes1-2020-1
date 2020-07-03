@@ -2,6 +2,7 @@
 
 from bisect import insort
 from collections import deque
+from math import isinf
 
 from utils.indicadores_progreso import ContadorPasos
 from utils.nodos import NodoConCostoCombinado as Nodo, reconstruir_ruta
@@ -19,6 +20,8 @@ def buscar_con_a_estrella(estado0, gen_estados_alcanzables, heuristica):
     """
     contador_pasos = ContadorPasos()
     dist = heuristica(estado0)
+    if isinf(dist):
+        return None  # no resuelto
     frontera = deque([Nodo(estado=estado0, padre=None, costo_actual=0,
                            dist=dist, costo_combinado=0+dist)])
     considerados = {estado0}  # estados en la frontera o ya visitados
@@ -29,12 +32,12 @@ def buscar_con_a_estrella(estado0, gen_estados_alcanzables, heuristica):
             return reconstruir_ruta(nodo)
         hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
         for hijo in hijos:
-            costo_actual = nodo.costo_actual + 1
-            dist = heuristica(hijo)
-            insort(frontera,
-                   Nodo(estado=hijo, padre=nodo, costo_actual=costo_actual,
-                        dist=dist, costo_combinado=costo_actual+dist))
-            considerados.add(hijo)
+            if not isinf(dist := heuristica(hijo)):
+                costo_actual = nodo.costo_actual + 1
+                insort(frontera,
+                    Nodo(estado=hijo, padre=nodo, costo_actual=costo_actual,
+                            dist=dist, costo_combinado=costo_actual+dist))
+                considerados.add(hijo)
     return None  # no resuelto
 
 

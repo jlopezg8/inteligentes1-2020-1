@@ -28,7 +28,10 @@ def buscar_en_anchura(estado0, gen_estados_alcanzables, es_estado_objetivo):
     while frontera:
         next(contador_pasos)
         nodo = frontera.popleft()
-        hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
+        #hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
+        # Si se desea preservar el orden de los hijos generados:
+        hijos = [hijo for hijo in gen_estados_alcanzables(nodo.estado)
+                 if hijo not in considerados]
         for hijo in hijos:
             nodo_hijo = Nodo(estado=hijo, padre=nodo)
             if es_estado_objetivo(hijo):
