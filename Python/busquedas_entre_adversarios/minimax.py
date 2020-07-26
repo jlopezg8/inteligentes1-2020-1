@@ -1,8 +1,7 @@
 """Resolver un triqui usando el algoritmo minimax."""
 
 class Minimax:
-    def __init__(self, gen_sucesores, get_utilidad, get_sig_jugador,
-                 funcs=(min, max)):
+    def __init__(self, gen_sucesores, get_utilidad, get_sig_jugador):
         """
         Inicializa una instancia de Minimax para resolver un problema en
         concreto.
@@ -15,19 +14,12 @@ class Minimax:
 
         :param `get_sig_jugador`: función que recibe el jugador del turno
         actual y retorna el jugador del turno siguiente
-
-        :param `funcs`: dupla de funciones que reciben un iterable de
-        utilidades y retornan la utilidad óptima; la función se elige de
-        acuerdo al jugador del turno actual; también deben poder recibir un
-        parámetro `default` que determina la utilidad a retornar si el iterable
-        está vacío
         """
         self.gen_sucesores = gen_sucesores
         self.get_utilidad = get_utilidad
         self.get_sig_jugador = get_sig_jugador
-        self.funcs = funcs
 
-    def _minimax(self, estado, jugador_max, jugador, es_turno_func1):
+    def _minimax(self, estado, jugador_max, jugador):
         """Retorna la utilidad de un estado usando el algoritmo minimax.
 
         :param `estado`: estado actual del juego
@@ -36,27 +28,21 @@ class Minimax:
         su punto de vista
 
         :param `jugador`: jugador del turno actual
-
-        :param `es_turno_func1`: si `jugador` es `self.funcs[1]`; ej: para
-        ``self.funcs = (min, max)``, si `jugador` es MAX entonces
-        `es_turno_func1=True`
         """
         utilidad_estado = self.get_utilidad(estado, jugador_max)
         if utilidad_estado != 0:
             return utilidad_estado
         utilidades_sucesores = (
-            self._minimax(sucesor, jugador_max, self.get_sig_jugador(jugador),
-                          es_turno_func1=not es_turno_func1)
+            self._minimax(sucesor, jugador_max, self.get_sig_jugador(jugador))
             for sucesor in self.gen_sucesores(estado, jugador))
-        return self.funcs[es_turno_func1](
+        return (min, max)[jugador == jugador_max](
             utilidades_sucesores, default=utilidad_estado)
 
     def __call__(self, estado, jugador):
         """Asumiendo que `estado` corresponde a la última jugada de `jugador` y
         por lo tanto es el turno del oponente.
         """
-        return self._minimax(estado, jugador, self.get_sig_jugador(jugador),
-                             es_turno_func1=False)
+        return self._minimax(estado, jugador, self.get_sig_jugador(jugador))
 
     def elegir_jugada(self, estado, jugador):
         """Retorna la mejor jugada para el estado y jugador actual."""
@@ -70,7 +56,7 @@ if __name__ == "__main__":
 
     args = triqui.parse_args()
     estado = triqui.ESTADO0
-    jugador, oponente = triqui.O, triqui.X
+    jugador, maquina = triqui.O, triqui.X
     minimax = Minimax(triqui.gen_sucesores, triqui.get_utilidad,
                       triqui.get_sig_jugador)
 
@@ -85,6 +71,6 @@ if __name__ == "__main__":
     else:  # humano vs máquina
         def elegir_jugada_maquina(estado):
             with cronometrar():
-                return minimax.elegir_jugada(estado, oponente)
+                return minimax.elegir_jugada(estado, maquina)
         triqui.jugar_contra_maquina(
             estado, jugador, elegir_jugada_maquina, args.inicia_maquina)

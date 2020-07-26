@@ -129,10 +129,12 @@ class ManejadorEleccionHumano:
 
 def jugar_contra_maquina(estado, jugador, elegir_jugada_maquina,
                          inicia_maquina):
-    """TODO: implementar `inicia_maquina`"""
     meh = ManejadorEleccionHumano(estado, jugador, elegir_jugada_maquina)
+    _graficar_estado(estado)
+    if inicia_maquina:
+        meh._jugar_maquina()
     plt.connect('button_press_event', meh)
-    graficar_estado(estado)
+    plt.show()
 
 
 def parse_args():
