@@ -1,5 +1,7 @@
 """Funciones de utilidad para el juego de triqui"""
 
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -88,6 +90,7 @@ def _graficar_estado(estado):
     for i, j, val in _iter_matriz(estado):
         if val != _:
             plt.text(x=j+.5, y=i+.5, s=val, size=32, ha='center', va='center')
+    plt.pause(.1)
 
 
 def graficar_estado(estado):
@@ -95,38 +98,47 @@ def graficar_estado(estado):
     plt.show()
 
 
-def graficar_estados(estados, intervalo_s=1):
-    for estado in estados:
-        plt.cla()
-        _graficar_estado(estado)
-        plt.pause(intervalo_s)
-    plt.show()
-
-
 class ManejadorEleccionHumano:
-    def __init__(self, estado, jugador, elegir_jugada_oponente):
+    def __init__(self, estado, jugador, elegir_jugada_maquina):
         self.es_turno_jugador = True
         self.estado = _como_mutable(estado)
         self.jugador = jugador
-        self.elegir_jugada_oponente = elegir_jugada_oponente
+        self.elegir_jugada_maquina = elegir_jugada_maquina
 
     def __call__(self, evt):
         if self.es_turno_jugador and evt.inaxes:
             self.es_turno_jugador = False
             if self._jugar_jugador(i=int(evt.ydata), j=int(evt.xdata)):
-                self._jugar_oponente()
+                self._jugar_maquina()
             self.es_turno_jugador = True
-    
+
     def _jugar_jugador(self, i, j):
         if self.estado[i][j] == _ and not es_hoja(self.estado):
             self.estado[i][j] = self.jugador
-            _graficar_estado(self.estado); plt.pause(.1)
+            _graficar_estado(self.estado)
             return True
         else:
             return False
-    
-    def _jugar_oponente(self):
+
+    def _jugar_maquina(self):
         if not es_hoja(self.estado):
             self.estado = _como_mutable(
-                self.elegir_jugada_oponente(self.estado))
-            _graficar_estado(self.estado); plt.pause(.1)
+                self.elegir_jugada_maquina(self.estado))
+            _graficar_estado(self.estado)
+
+
+def jugar_contra_maquina(estado, jugador, elegir_jugada_maquina,
+                         inicia_maquina):
+    """TODO: implementar `inicia_maquina`"""
+    meh = ManejadorEleccionHumano(estado, jugador, elegir_jugada_maquina)
+    plt.connect('button_press_event', meh)
+    graficar_estado(estado)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Jugar triqui.')
+    parser.add_argument('-e', '--entre_maquinas', action='store_true',
+                        help='juegan máquina vs máquina')
+    parser.add_argument('-i', '--inicia_maquina', action='store_true',
+                        help='inicia máquina (para humano vs máquina)')
+    return parser.parse_args()

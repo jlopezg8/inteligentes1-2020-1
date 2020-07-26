@@ -1,6 +1,5 @@
 """Resolver un triqui usando el algoritmo minimax."""
 
-
 class Minimax:
     def __init__(self, gen_sucesores, get_utilidad, get_sig_jugador,
                  funcs=(min, max)):
@@ -66,51 +65,26 @@ class Minimax:
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Jugar triqui.')
-    parser.add_argument('-e', '--entre_maquinas', action='store_true',
-                        help='juegan máquina vs máquina')
-    parser.add_argument('-i', '--inicia_maquina', action='store_true',
-                        help='inicia máquina (para humano vs máquina)')
-    args = parser.parse_args()
-
-
-    import matplotlib.pyplot as plt
-
     import utils.triqui as triqui
-    from utils.indicadores_progreso import ContadorPasos
+    from utils import cronometrar
 
-
+    args = triqui.parse_args()
     estado = triqui.ESTADO0
     jugador, oponente = triqui.O, triqui.X
     minimax = Minimax(triqui.gen_sucesores, triqui.get_utilidad,
                       triqui.get_sig_jugador)
 
-
-    def computador_vs_computador():
-        global estado, jugador
-        contador_pasos = ContadorPasos()
+    if args.entre_maquinas:  # máquina vs máquina
         while not triqui.es_hoja(estado):
-            contador_pasos.send(f'{jugador=}'); next(contador_pasos)
-            triqui._graficar_estado(estado); plt.pause(.1)
-            estado = minimax.elegir_jugada(estado, jugador)
+            triqui._graficar_estado(estado)
+            with cronometrar():
+                print(f'{jugador=}')
+                estado = minimax.elegir_jugada(estado, jugador)
             jugador = triqui.get_sig_jugador(jugador)
-        contador_pasos.close()
         triqui.graficar_estado(estado)
-
-
-    def humano_vs_computador(inicia_computador):
-        # TODO: implementar `inicia_computador`
-        def elegir_jugada_oponente(estado):
-            return minimax.elegir_jugada(estado, oponente)
-        meh = triqui.ManejadorEleccionHumano(
-            estado, jugador, elegir_jugada_oponente)
-        plt.connect('button_press_event', meh)
-        triqui.graficar_estado(estado)
-
-
-    if args.entre_maquinas:
-        computador_vs_computador()
-    else:
-        humano_vs_computador(args.inicia_maquina)
+    else:  # humano vs máquina
+        def elegir_jugada_maquina(estado):
+            with cronometrar():
+                return minimax.elegir_jugada(estado, oponente)
+        triqui.jugar_contra_maquina(
+            estado, jugador, elegir_jugada_maquina, args.inicia_maquina)
