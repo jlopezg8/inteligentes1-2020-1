@@ -19,8 +19,7 @@ def buscar_con_a_estrella(estado0, gen_estados_alcanzables, heuristica):
         del estado objetivo; debe retornar 0 si el estado es el estado objetivo
     """
     contador_pasos = ContadorPasos()
-    dist = heuristica(estado0)
-    if isinf(dist):
+    if isinf(dist := heuristica(estado0)):
         return None  # no resuelto
     frontera = deque([Nodo(estado=estado0, padre=None, costo_actual=0,
                            dist=dist, costo_combinado=0+dist)])
@@ -33,10 +32,10 @@ def buscar_con_a_estrella(estado0, gen_estados_alcanzables, heuristica):
         hijos = set(gen_estados_alcanzables(nodo.estado)) - considerados
         for hijo in hijos:
             if not isinf(dist := heuristica(hijo)):
-                costo_actual = nodo.costo_actual + 1
+                costo_hijo = nodo.costo_actual + 1
                 insort(frontera,
-                    Nodo(estado=hijo, padre=nodo, costo_actual=costo_actual,
-                            dist=dist, costo_combinado=costo_actual+dist))
+                       Nodo(estado=hijo, padre=nodo, costo_actual=costo_hijo,
+                            dist=dist, costo_combinado=costo_hijo+dist))
                 considerados.add(hijo)
     return None  # no resuelto
 

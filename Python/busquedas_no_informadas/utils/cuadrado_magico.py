@@ -8,7 +8,7 @@ import numpy as np
 ESTADO0 = (
     (0, 0, 0),
     (0, 0, 0),
-    (0, 0, 0)
+    (0, 0, 0),
 )
 
 
@@ -25,8 +25,8 @@ def gen_sucesores(estado):
 
 
 def _hallar_sumas(cuadrado):
-    suma_diag1 = cuadrado[0, 0] + cuadrado[1, 1] + cuadrado[2, 2]
-    suma_diag2 = cuadrado[0, 2] + cuadrado[1, 1] + cuadrado[2, 0]
+    suma_diag1 = np.trace(cuadrado)
+    suma_diag2 = np.trace(np.fliplr(cuadrado))
     sumas_cols = cuadrado.sum(axis=0)
     sumas_filas = cuadrado.sum(axis=1)
     return np.concatenate(((suma_diag1, suma_diag2), sumas_cols, sumas_filas))

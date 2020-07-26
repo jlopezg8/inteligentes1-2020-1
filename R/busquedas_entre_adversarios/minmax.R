@@ -7,6 +7,7 @@ source('funcionestriki.R',encoding='iso8859-15')
 #Funci�n para calcular la utilidad de un determinado estado en el triki :::::::::::::
 #------------------------------------------------------------------------------------
 #Esta funci�n considera por defecto al jugador con la x
+install.packages('pracma')
 util.triki=function(m,max='x'){
     library(pracma)
     p=which(m==max,arr.ind=TRUE); #Posici�n de los espacios con la marca seleccionada
@@ -62,7 +63,7 @@ minmax=function(m,max='x',turno='x'){
 #Rutina principal del algoritmo min-max :::::::::::::::::::::::::::::::::::::::::::::
 #------------------------------------------------------------------------------------
     
-m=matrix(c(NA,NA,NA,NA,'x',NA,NA,NA,NA),ncol=3,byrow=TRUE);
+m=matrix(c(NA,NA,NA,NA,NA,NA,NA,NA,NA),ncol=3,byrow=TRUE);
 graph.triki(m)
 cond=1
 while(cond==1){
@@ -146,27 +147,111 @@ m=matrix(c(NA,NA,NA,NA,NA,NA,NA,NA,NA),ncol=3,byrow=TRUE);
 graph.triki(m)
 cond=1
 while(cond==1){
-      m=fetch.triki(m,turno='o')  #Jugador real
+    m=fetch.triki(m,turno='o')  #Jugador real
     graph.triki(m)
-    
     u=util.triki(m,max='x')
     if(u!=0){ 
-        Sys.sleep(2)
+        Sys.sleep(3)
+        break;
+    }
+    if(is.null(triki.states(m))){ 
+        Sys.sleep(3)
+        break;
+        }
+    t=system.time({    
+        m=triki.states(m)[[which.max(sapply(triki.states(m,turn='x'),alphabeta,turno='o'))]] #M�quina
+    })
+    print(t)
+    graph.triki(m)
+    u=util.triki(m,max='x')
+    if(u!=0){ 
+        Sys.sleep(3)
         break;
     }
     if(is.null(triki.states(m))){ 
         Sys.sleep(2)
         break;
         }
-    t=system.time({
-        m=triki.states(m)[[which.max(sapply(triki.states(m,turn='x'),h.alphabeta,turno='o'))]] #M�quina
+    }
+
+
+#------------------------------------------------------------------------------------
+#Poda alpha-beta con cut-off ::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#------------------------------------------------------------------------------------
+# Esta funci�n supone que 'x' es max y 'o' es min
+# Supone que el turno es de 'x'
+alphabeta_cutoff=function(m, max_profundidad, max='x',turno='x',alpha=-Inf,beta=Inf){
+    if(turno=='x'){siguiente='o'}
+    if(turno=='o'){siguiente='x'}
+    
+    util.actual=util.triki(m,max=max);
+    if(util.actual!=0){ #Si la utilidad del estado es diferente de cero, es una hoja
+        #print(m)
+        return(util.actual);
+    }
+    if(is.null(triki.states(m))){ #Si el estado ya tiene todas las posiciones llenas, es una hoja
+        #print(m)
+        return(util.actual);
+    }
+    if (max_profundidad == 0) {  #Si ya se alcanzó la profundidad máxima
+        #print(m)
+        return(util.actual);
+    }else{
+        if(turno==max){
+            utilidades=c();
+            estados=triki.states(m,turno=turno);
+            for(i in 1:length(estados)){
+                u=alphabeta_cutoff(estados[[i]], max_profundidad - 1, max=max,turno=siguiente,alpha=alpha,beta=beta);
+                utilidades=c(utilidades,u);
+                if(u>=beta){
+                    break #Se suspende la b�squeda
+                }
+                alpha=max(c(utilidades,alpha));    
+            }
+            return(max(utilidades))
+        }else{
+            utilidades=c();
+            estados=triki.states(m,turno=turno);
+            for(i in 1:length(estados)){
+                u=alphabeta_cutoff(estados[[i]], max_profundidad - 1, max=max,turno=siguiente,alpha=alpha,beta=beta);
+                utilidades=c(utilidades,u);
+                if(u<=alpha){
+                    break #Se suspende la b�squeda
+                }
+                beta=min(c(utilidades,beta));
+            }
+            return(min(utilidades))
+        }
+    }
+}
+
+#------------------------------------------------------------------------------------
+#Rutina principal del algoritmo alpha-beta :::::::::::::::::::::::::::::::::::::::::::
+#------------------------------------------------------------------------------------
+m=matrix(c(NA,NA,NA,NA,NA,NA,NA,NA,NA),ncol=3,byrow=TRUE);
+graph.triki(m)
+cond=1
+while(cond==1){
+    m=fetch.triki(m,turno='o')  #Jugador real
+    graph.triki(m)
+    u=util.triki(m,max='x')
+    if(u!=0){ 
+        Sys.sleep(3)
+        break;
+    }
+    if(is.null(triki.states(m))){ 
+        Sys.sleep(3)
+        break;
+        }
+    t=system.time({    
+        m=triki.states(m)[[which.max(
+            sapply(triki.states(m,turn='x'),alphabeta_cutoff,turno='o', max_profundidad=5))]] #M�quina
     })
     print(t)
     graph.triki(m)
-    
     u=util.triki(m,max='x')
     if(u!=0){ 
-        Sys.sleep(2)
+        Sys.sleep(3)
         break;
     }
     if(is.null(triki.states(m))){ 
