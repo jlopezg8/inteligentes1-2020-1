@@ -1,25 +1,36 @@
 """Resolver un triqui usando la poda alfa-beta."""
 
 class PodaAlfaBeta:
-    def __init__(self, gen_sucesores, get_utilidad, get_sig_jugador):
-        """
-        Inicializa una instancia de PodaAlfaBeta para resolver un problema en
+    def __init__(self, es_hoja, get_utilidad, gen_sucesores, get_sig_jugador,
+                 funcs=(min, max)):
+        """Inicializa una instancia de Minimax para resolver un problema
         concreto.
 
-        :param `gen_sucesores`: función que recibe un estado y genera sus
-        sucesores
+        :param `es_hoja`: función que recibe un estado y determina si es un
+        nodo hoja
 
-        :param `get_utilidad`: función que recibe un estado y retorna su
-        utilidad
+        :param `get_utilidad`: función que recibe un estado y un jugador y
+        retorna la utilidad del estado desde el punto de vista del jugador
+
+        :param `gen_sucesores`: función que recibe un estado y un jugador y
+        genera los sucesores del estado desde el punto de vista del jugador
 
         :param `get_sig_jugador`: función que recibe el jugador del turno
         actual y retorna el jugador del turno siguiente
-        """
-        self.gen_sucesores = gen_sucesores
-        self.get_utilidad = get_utilidad
-        self.get_sig_jugador = get_sig_jugador
 
-    def _poda_alfa_beta(
+        :param `funcs`: dupla de funciones que reciben un iterable de
+        utilidades y seleccionan la utilidad óptima desde el punto de vista del
+        jugador del turno actual. Por defecto ``funcs=(min, max)``, así el
+        jugador MIN usa `funcs[0]` y el jugador MAX usa `funcs[1]`. Es común
+        reemplazar `min` por `utils.mean` para juegos estocásticos.
+        """        
+        self.es_hoja = es_hoja
+        self.get_utilidad = get_utilidad
+        self.gen_sucesores = gen_sucesores
+        self.get_sig_jugador = get_sig_jugador
+        self.funcs = funcs
+
+    def __call__(
             self, estado, jugador_max, jugador, lim_profundidad=float('inf'),
             alfa=float('-inf'), beta=float('inf')):
         """Retorna la utilidad de un estado usando el algoritmo minimax.
@@ -33,17 +44,14 @@ class PodaAlfaBeta:
 
         :param `lim_profundidad`: profundidad a partir de la cual se corta la
         búsqueda
-        """
-        if ((utilidad_estado := self.get_utilidad(estado, jugador_max)) != 0
-            or lim_profundidad == 0
-            or not (sucesores := list(self.gen_sucesores(estado, jugador)))):
-            return utilidad_estado
+        """        
+        if lim_profundidad == 0 or self.es_hoja(estado):
+            return self.get_utilidad(estado, jugador_max)
 
         utilidades_sucesores = (
-            self._poda_alfa_beta(
-                sucesor, jugador_max, self.get_sig_jugador(jugador),
-                lim_profundidad - 1, alfa, beta)
-            for sucesor in sucesores)
+            self(sucesor, jugador_max, self.get_sig_jugador(jugador),
+                 lim_profundidad - 1, alfa, beta)
+            for sucesor in self.gen_sucesores(estado, jugador))
 
         if jugador == jugador_max:
             utilidad = float('-inf')
@@ -61,17 +69,13 @@ class PodaAlfaBeta:
                     break
         return utilidad
 
-    def __call__(self, estado, jugador, lim_profundidad=float('inf')):
-        """Asumiendo que `estado` corresponde a la última jugada de `jugador` y
-        por lo tanto es el turno del oponente.
-        """
-        return self._poda_alfa_beta(
-            estado, jugador, self.get_sig_jugador(jugador), lim_profundidad)
-
     def elegir_jugada(self, estado, jugador, lim_profundidad=float('inf')):
         """Retorna la mejor jugada para el estado y jugador actual."""
-        return max(self.gen_sucesores(estado, jugador),
-                   key=lambda sucesor: self(sucesor, jugador, lim_profundidad))
+        return max(
+            self.gen_sucesores(estado, jugador),
+            key=lambda sucesor: self(
+                sucesor, jugador, self.get_sig_jugador(jugador),
+                lim_profundidad))
 
 
 if __name__ == "__main__":
@@ -81,8 +85,8 @@ if __name__ == "__main__":
     args = triqui.parse_args()
     estado = triqui.ESTADO0
     jugador, maquina = triqui.O, triqui.X
-    poda_alfa_beta = PodaAlfaBeta(
-        triqui.gen_sucesores, triqui.get_utilidad, triqui.get_sig_jugador)
+    poda_alfa_beta = PodaAlfaBeta(triqui.es_hoja, triqui.get_utilidad,
+                                  triqui.gen_sucesores, triqui.get_sig_jugador)
     lim_profundidad = 5
 
     if args.entre_maquinas:  # máquina vs máquina

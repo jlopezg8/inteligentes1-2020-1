@@ -24,7 +24,7 @@ while(cond==1){
 #Funci�n para determinar la utilidad dl 2048 :::::::::::::::::::::::::::::::::::::::
 #------------------------------------------------------------------------------------
 util.2048=function(m){
-    return(length(which(m==0)) + log2(max(m))) #En cada paso maximiza el n�mero de posiciones vac�as
+    return(length(which(m==0))) #En cada paso maximiza el n�mero de posiciones vac�as
 }
 
 #------------------------------------------------------------------------------------
