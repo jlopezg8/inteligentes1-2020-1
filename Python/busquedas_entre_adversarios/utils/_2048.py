@@ -1,50 +1,171 @@
-"""Funciones de utilidad para el juego de 2048."""
+"""Funciones de utilidad para el juego de 2048.
+
+Para jugar una partida ejecutar el script desde el directorio padre como
+``py -m utils._2048``.
+"""
 
 import random
+from math import log2
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-def _como_mutable(matriz):
-    """Obtener una copia mutable de `matriz`."""
-    return [list(fila) for fila in matriz]
+from . import como_hasheable, como_mutable, iter_matriz
 
 
-def _como_hasheable(matriz):
-    """Obtener una copia hasheable (y por tanto inmutable) de `matriz`."""
-    return tuple(tuple(fila) for fila in matriz)
+def es_hoja(estado):
+    return not any(_gen_sucesores_jugador(estado))
 
 
-def _iter_matriz(matriz, con_indice=True):
+def gen_estado_inicial(n=4):
+    estado = np.zeros((n, n), dtype=int)
+    return jugar_maquina(estado)
+
+
+def gen_sucesores(estado, jugador):
+    if jugador:
+        yield from _gen_sucesores_jugador(estado)
+    else:
+        yield from _gen_sucesores_maquina(estado)
+
+
+# Por el orden de esta lista se favorecen los movimientos hacia arriba y hacia
+# la izquierda:
+DIRECCIONES = ('up', 'left', 'down', 'right')
+
+
+def _gen_sucesores_jugador(estado):
+    """Función generadora de los estados resultantes de aplicar las acciones
+    del jugador a `estado`.
     """
-    Recorrer `matriz` en row-major order (de arriba a abajo de izquierda a
-    derecha) generando tuplas de la forma (fila, columna, valor) si
-    ``con_indice == True``, de lo contrario solo genera los valores.
+    visitados = {estado}
+    for direccion in DIRECCIONES:
+        if (sucesor := mover(estado, direccion)) not in visitados:
+            yield sucesor
+            visitados.add(sucesor)
+
+
+def _gen_sucesores_maquina(estado):
+    """Función generadora de los estados resultantes de aplicar las acciones
+    de la máquina a `estado`.
     """
-    for i, fila in enumerate(matriz):
-        for j, val in enumerate(fila):
-            yield (i, j, val) if con_indice else val
+    indices_0s = [(i, j) for i, j, val in iter_matriz(estado) if val == 0]
+    if indices_0s:
+        estado = como_mutable(estado)
+        for i, j in indices_0s:
+            estado[i][j] = 2
+            yield como_hasheable(estado)
+            estado[i][j] = 0
+    else:  # a veces la máquina no puede colocar un 2, así que no hace nada
+        yield estado
+
+
+def get_puntaje(estado):
+    return np.max(estado)
+
+
+JUGADOR = True
+
+
+def get_sig_jugador(jugador):
+    return not jugador
+
+
+def get_utilidad(estado, p_vacias=1, p_puntaje=1, p_monotonia=1):
+    estado = np.array(estado)
+    n_vacias = np.count_nonzero(estado == 0)
+    lg_puntaje = log2(estado.max())
+    monotonia = _get_monotonia(estado)
+    return p_vacias*n_vacias + p_puntaje*lg_puntaje + p_monotonia*monotonia
+
+
+def _get_esquinidad(estado):
+    """
+    - Récord: 2048>512
+    - Corre muy rápido: (13.8 us +- 613 ns) / estado
+    - Favorece la esquina superior izquierda
+    """
+    esquinidad = 0
+    m, n = estado.shape
+    for i in range(m):
+        for j in range(n - 1):
+            if estado[i, j] < estado[i, j + 1]:
+                break
+            esquinidad += 1
+    for j in range(n):
+        for i in range(m - 1):
+            if estado[i, j] < estado[i + 1, j]:
+                break
+            esquinidad += 1
+    return esquinidad
+
+
+def _get_monotonia(estado):
+    """
+    - Récord: 4096>1024
+    - Corre más o menos rápido: (73.2 us +- 1.18 us) / estado
+    - Suele mover la casilla de mayor valor alrededor del tablero
+    """
+    lgs = np.log2(estado, out=np.zeros_like(estado, dtype=float),
+                  where=estado>0)
+    difs_contiguos_col = lgs[:-1] - lgs[1:]
+    monotonia_vertical = max(
+        difs_contiguos_col.sum(where=difs_contiguos_col>0),
+        -difs_contiguos_col.sum(where=difs_contiguos_col<0))
+    difs_contiguos_fila = lgs[:, :-1] - lgs[:, 1:]
+    monotonia_horizontal = max(
+        difs_contiguos_fila.sum(where=difs_contiguos_fila>0),
+        -difs_contiguos_fila.sum(where=difs_contiguos_fila<0))
+    return .5 * (monotonia_vertical + monotonia_horizontal) / lgs.max()
+
+
+def graficar_estado(estado):
+    _graficar_estado(estado)
+    plt.show()
+
+
+def _graficar_estado(estado):
+    plt.cla()
+    estado = np.array(estado)
+    m, n = estado.shape
+    mat = np.log2(estado, out=np.zeros_like(estado, dtype=float),
+                  where=estado>0)
+    plt.matshow(mat, fignum=0, cmap='YlOrRd', vmin=0, vmax=11,
+                extent=(0, n, m, 0))
+    plt.grid(True, color='black')
+    plt.tick_params(direction='in', labeltop=False, labelleft=False)
+    for i, j, val in iter_matriz(estado):
+        if val != 0:
+            plt.text(x=j+.5, y=i+.5, s=val, size='xx-large', ha='center',
+                     va='center')
+    plt.pause(.001)
 
 
 def jugar_maquina(estado):
-    indices_0s = [(i, j) for i, j, val in _iter_matriz(estado) if val == 0]
+    indices_0s = [(i, j) for i, j, val in iter_matriz(estado) if val == 0]
     if indices_0s:
-        estado = _como_mutable(estado)
+        estado = como_mutable(estado)
         i, j = random.choice(indices_0s)
         estado[i][j] = 2
-        return _como_hasheable(estado)
+        return como_hasheable(estado)
     else:
         return estado
 
 
-def get_estado_inicial(n=4):
-    estado = [[0] * n for _ in range(n)]
-    return jugar_maquina(estado)
-
-
-def get_utilidad(estado):
-    return sum(1 for val in _iter_matriz(estado, con_indice=False) if val == 0)
+def mover(estado, mov):
+    if mov == 'left':
+        estado = [_mover_fila_hacia_izq(fila) for fila in estado]
+    elif mov == 'right':
+        estado = [_mover_fila_hacia_izq(fila[::-1])[::-1] for fila in estado]
+    elif mov == 'up':
+        estado = [_mover_fila_hacia_izq(fila) for fila in np.rot90(estado)]
+        estado = np.rot90(estado, -1)
+    elif mov == 'down':
+        estado = [_mover_fila_hacia_izq(fila) for fila in np.rot90(estado, -1)]
+        estado = np.rot90(estado)
+    else:
+        raise ValueError(f'{mov=} no reconocido')
+    return como_hasheable(estado)
 
 
 def _mover_fila_hacia_izq(fila):
@@ -63,92 +184,24 @@ def _mover_fila_hacia_izq(fila):
     return combinadas + [0] * (len(fila) - len(combinadas))
 
 
-DIRECCIONES = ('left', 'right', 'up', 'down')
+def PartidaMaquinaVsMaquina(elegir_jugada):
+    estado = gen_estado_inicial()
+    while not es_hoja(estado):
+        graficar_estado(estado)
+        estado = elegir_jugada(estado, JUGADOR)
+        estado = jugar_maquina(estado)
+    graficar_estado(estado)
 
 
-def mover(estado, mov):
-    if mov == 'left':
-        estado = [_mover_fila_hacia_izq(fila) for fila in estado]
-    elif mov == 'right':
-        estado = [_mover_fila_hacia_izq(fila[::-1])[::-1] for fila in estado]
-    elif mov == 'up':
-        estado = [_mover_fila_hacia_izq(fila) for fila in np.rot90(estado)]
-        estado = np.rot90(estado, -1)
-    elif mov == 'down':
-        estado = [_mover_fila_hacia_izq(fila) for fila in np.rot90(estado, -1)]
-        estado = np.rot90(estado)
-    else:
-        raise ValueError(f'{mov=} no reconocido')
-    return _como_hasheable(estado)
-
-
-def gen_sucesores_jugador(estado):
-    """Función generadora de los estados resultantes de aplicar las acciones
-    del jugador a `estado`.
-    """
-    yield from (
-        {mover(estado, direccion) for direccion in DIRECCIONES} - {estado})
-
-
-def es_hoja(estado):
-    return not list(gen_sucesores_jugador(estado))
-
-
-JUGADOR = True
-
-
-def get_sig_jugador(jugador):
-    return not jugador
-
-
-def gen_sucesores_maquina(estado):
-    """Función generadora de los estados resultantes de aplicar las acciones
-    de la máquina a `estado`.
-    """
-    indices_0s = [(i, j) for i, j, val in _iter_matriz(estado) if val == 0]
-    if indices_0s:
-        estado = _como_mutable(estado)
-        for i, j in indices_0s:
-            estado[i][j], val = 2, estado[i][j]
-            yield _como_hasheable(estado)
-            estado[i][j] = val
-    else:  # a veces la máquina no puede colocar un 2, así que no hace nada
-        yield estado
-
-
-def gen_sucesores(estado, jugador):
-    if jugador:
-        yield from gen_sucesores_jugador(estado)
-    else:
-        yield from gen_sucesores_maquina(estado)
-
-
-def _graficar_estado(estado):
-    plt.cla()
-    estado = np.array(estado)
-    m, n = estado.shape
-    mat = np.log2(estado, out=np.zeros_like(estado, dtype=float),
-                  where=(estado > 0))
-    plt.matshow(mat, fignum=0, cmap='YlOrRd', vmin=0, vmax=11,
-                extent=(0, n, m, 0))
-    plt.grid(True, color='black')
-    plt.tick_params(direction='in', labeltop=False, labelleft=False)
-    for i, j, val in _iter_matriz(estado):
-        if val != 0:
-            plt.text(x=j+.5, y=i+.5, s=val, size='xx-large', ha='center',
-                     va='center')
-    plt.pause(.1)
-
-
-def graficar_estado(estado):
-    _graficar_estado(estado)
-    plt.show()
-
-
-class ManejadorHumanoVsMaquina:
-    def __init__(self, estado):
-        self.estado = estado
+class PartidaHumanoVsMaquina:
+    def __init__(self):
+        self.estado = gen_estado_inicial()
         self.es_turno_jugador = True
+        self._iniciar()
+
+    def _iniciar(self):
+        plt.connect('key_press_event', self)
+        graficar_estado(self.estado)
 
     def __call__(self, evt):
         if self.es_turno_jugador and evt.key in DIRECCIONES:
@@ -157,28 +210,21 @@ class ManejadorHumanoVsMaquina:
     def _jugar_jugador(self, direccion):
         self.es_turno_jugador = False
         jugada_jugador = mover(self.estado, direccion)
-        if not np.array_equal(jugada_jugador, self.estado):
+        if jugada_jugador != self.estado:
             self.estado = jugar_maquina(jugada_jugador)
             _graficar_estado(self.estado)
-            if self._fin_juego():
+            if self.fin_juego():
                 return
         self.es_turno_jugador = True
 
-    def _fin_juego(self):
+    def fin_juego(self):
         if es_hoja(self.estado):
-            plt.title(f'Fin del juego\nPuntaje={np.max(self.estado)}')
-            plt.pause(.1)
+            plt.title(f'Fin del juego\nPuntaje={get_puntaje(self.estado)}')
+            plt.pause(.001)
             return True
         else:
             return False
 
 
-def jugar_contra_maquina():
-    estado = get_estado_inicial()
-    mhvm = ManejadorHumanoVsMaquina(estado)
-    plt.connect('key_press_event', mhvm)
-    graficar_estado(estado)
-
-
 if __name__ == "__main__":
-    jugar_contra_maquina()
+    PartidaHumanoVsMaquina()

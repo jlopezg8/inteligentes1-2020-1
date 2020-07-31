@@ -1,44 +1,18 @@
-"""Funciones de utilidad para el juego de triqui."""
-
-import argparse
-import random
+"""Funciones de utilidad para el juego de pente simplificado."""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from . import como_hasheable, como_mutable, iter_matriz
+from . import como_mutable
+from .triqui import (
+    O, X, _, gen_sucesores, get_sig_jugador, graficar_estado, _graficar_estado)
 
 
-O = 'O'
-X = 'X'
-_ = '_'
-
-ESTADO_INICIAL = (
-    (_, _, _),
-    (_, _, _),
-    (_, _, _),
-)
+ESTADO_INICIAL = ((_,) * 6,) * 6
 
 
 def es_hoja(estado):
     return not any(gen_sucesores(estado, O)) or get_utilidad(estado, O) != 0
-
-
-def gen_sucesores(estado, jugador):
-    """Función generadora de los estados sucesores de `estado`."""
-    estado = como_mutable(estado)
-    for i, j, val in iter_matriz(estado):
-        if val == _:
-            estado[i][j] = jugador
-            yield como_hasheable(estado)
-            estado[i][j] = _
-
-
-def get_sig_jugador(jugador):
-    """Retorna el jugador del turno siguiente, donde `jugador` es el jugador
-    del turno actual.
-    """
-    return O if jugador == X else X
 
 
 def get_utilidad(estado, jugador):
@@ -47,45 +21,28 @@ def get_utilidad(estado, jugador):
     si ningún jugador ha ganado hasta el momento.
     """
     estado = np.array(estado)
-    m, n = estado.shape  # asumir que m == n (estado es una matriz cuadrada)
-    jugadores = (
-        (estado == jugador, 1),  # jugador
-        ((estado == get_sig_jugador(jugador)), -1),  # oponente
-    )
-    for jugadas, utilidad in jugadores:
-        if (any(jugadas.sum(axis=0) == m)  # columnas
-            or any(jugadas.sum(axis=1) == n)  # filas
-            or np.trace(jugadas) == n  # diagonal principal
-            or np.trace(np.fliplr(jugadas)) == n):  # diagonal secundaria
-            return utilidad
-    return 0
+    if _es_ganador(estado == jugador):
+        return 1
+    elif _es_ganador(estado == get_sig_jugador(jugador)):  # oponente
+        return -1
+    else:
+        return 0
 
 
-def graficar_estado(estado):
-    _graficar_estado(estado)
-    plt.show()
+def _es_ganador(jugadas):
+    return (any(jugadas[:-1].sum(axis=0) == 5)  # filas 0-4
+            or any(jugadas[1:].sum(axis=0) == 5)  # filas 1-5
+            or any(jugadas[:, :-1].sum(axis=1) == 5)  # columnas 0-4
+            or any(jugadas[:, 1:].sum(axis=1) == 5)  # columnas 1-5
+            or _gano_con_diag_principal(jugadas)  # diagonal principal
+            or _gano_con_diag_principal(np.fliplr(jugadas)))  # diagonal sec
 
 
-def _graficar_estado(estado):
-    plt.grid(True, color='black')
-    plt.ylim(len(estado), 0)
-    plt.xlim(0, len(estado[0]))
-    plt.yticks(range(1, len(estado)), labels=[])
-    plt.xticks(range(1, len(estado[0])), labels=[])
-    plt.gca().set_frame_on(False)
-    for i, j, val in iter_matriz(estado):
-        if val != _:
-            plt.text(x=j+.5, y=i+.5, s=val, size=32, ha='center', va='center')
-    plt.pause(.1)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Jugar triqui.')
-    parser.add_argument('-e', '--entre_maquinas', action='store_true',
-                        help='juegan máquina vs máquina')
-    parser.add_argument('-i', '--inicia_maquina', action='store_true',
-                        help='inicia máquina (para humano vs máquina)')
-    return parser.parse_args()
+def _gano_con_diag_principal(jugadas):
+    return (np.trace(jugadas[:-1]) == 5
+            or np.trace(jugadas[:-1], offset=1) == 5
+            or np.trace(jugadas[1:]) == 5
+            or np.trace(jugadas[1:], offset=1) == 5)    
 
 
 def PartidaMaquinaVsMaquina(elegir_jugada, maquina1=O,
