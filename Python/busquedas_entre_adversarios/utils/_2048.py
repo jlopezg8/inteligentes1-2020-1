@@ -187,7 +187,7 @@ def _mover_fila_hacia_izq(fila):
 def PartidaMaquinaVsMaquina(elegir_jugada):
     estado = gen_estado_inicial()
     while not es_hoja(estado):
-        graficar_estado(estado)
+        _graficar_estado(estado)
         estado = elegir_jugada(estado, JUGADOR)
         estado = jugar_maquina(estado)
     graficar_estado(estado)

@@ -81,8 +81,8 @@ if __name__ == "__main__":
         _2048.gen_sucesores, _2048.get_sig_jugador)
 
     def elegir_jugada(estado, jugador):
-        #with cronometrar():
-        return montecarlo.elegir_jugada(estado, jugador, n_sims=15,
-                                        lim_profundidad=10)
+        with cronometrar():
+            return montecarlo.elegir_jugada(estado, jugador, n_sims=15,
+                                            lim_profundidad=10)
 
     _2048.PartidaMaquinaVsMaquina(elegir_jugada)
