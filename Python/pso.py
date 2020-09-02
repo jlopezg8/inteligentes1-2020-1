@@ -1,5 +1,7 @@
 """Soluciones numéricas a problemas de cinemática inversa con seis grados de
 libertad usando optimización por enjambre de partículas.
+
+Tomado de: https://pyswarms.readthedocs.io/en/latest/examples/usecases/inverse_kinematics.html
 """
 
 from collections import namedtuple
@@ -76,13 +78,26 @@ def probar_params(param_cognitivo, param_social, param_inercia):
         'w': param_inercia,
     }
     optimizador = ps.single.GlobalBestPSO(
-        n_particles=20, dimensions=6, options=params, bounds=restricciones)
+        n_particles=15, dimensions=6, options=params, bounds=restricciones)
     mejor_costo, vars_articulaciones = optimizador.optimize(
-        func_obj, iters=1000)
+        func_obj, iters=500)
 
-    print(VarsArticulaciones._make(vars_articulaciones))
+    """print(VarsArticulaciones._make(vars_articulaciones))
     print(f'=> {Punto._make(hallar_pos_punta(vars_articulaciones))} '
-          f'(dist={mejor_costo})')
+          f'(dist={mejor_costo})')"""
+    
+    return mejor_costo
 
 
-probar_params(param_cognitivo=1.5, param_social=1.5, param_inercia=0.5)
+#probar_params(param_cognitivo=1.5, param_social=1.5, param_inercia=0.5)
+
+resultados = {}
+
+
+def add_prueba(params):
+    costos = [probar_params(*params) for _ in range(10)]
+    resultados[params] = (np.mean(costos), np.std(costos))
+    print(resultados[params])
+
+
+add_prueba((3, .75, .5))
