@@ -1,3 +1,4 @@
 matplotlib
 numpy
+pyswarms  # para optimización por enjambre de partículas (PSO)
 tqdm  # opcional, para ver el progreso de los algoritmos con barras de progreso
